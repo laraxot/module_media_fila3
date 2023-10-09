@@ -32,7 +32,7 @@ class ViewMediaItem
     {
         return new HtmlString(implode(PHP_EOL, [
             'x-data',
-            'x-on:keyup.debounce.'.$debounceInMs.'="$wire.setCustomProperty(\''.$this->uuid.'\', \''.$name.'\', document.getElementsByName(\''.$this->customPropertyAttributeName($name).'\')[0].value)"',
+            'x-on:keyup.debounce.' . $debounceInMs . '="$wire.setCustomProperty(\'' . $this->uuid . '\', \'' . $name . '\', document.getElementsByName(\'' . $this->customPropertyAttributeName($name) . '\')[0].value)"',
             $this->customPropertyAttributes($name),
         ]));
     }

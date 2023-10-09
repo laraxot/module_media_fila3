@@ -26,7 +26,7 @@ class ConvertLivewireUploadToMediaAction
 
         $diskBeforeTestFake = config('livewire.temporary_file_upload.disk') ?: config('filesystems.default');
 
-        return 'local' === config('filesystems.disks.'.strtolower((string) $diskBeforeTestFake).'.driver');
+        return 'local' === config('filesystems.disks.' . strtolower((string) $diskBeforeTestFake) . '.driver');
     }
 
     protected function createFromLocalLivewireUpload(TemporaryUploadedFile $temporaryUploadedFile): Media
@@ -54,7 +54,7 @@ class ConvertLivewireUploadToMediaAction
         $livewireDisk = config('livewire.temporary_file_upload.disk', 's3');
 
         $livewireDirectory = FileUploadConfiguration::directory();
-        $remotePath = Str::of($livewireDirectory)->start('/')->finish('/').$temporaryUploadedFile->getFilename();
+        $remotePath = Str::of($livewireDirectory)->start('/')->finish('/') . $temporaryUploadedFile->getFilename();
 
         $temporaryUpload = $temporaryUploadModelClass::createForRemoteFile(
             $remotePath,

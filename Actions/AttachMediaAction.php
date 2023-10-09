@@ -34,7 +34,7 @@ class AttachMediaAction
     {
         $order = 1;
         foreach ($attachments as $attachment) {
-            ++$order;
+            $order++;
             $temporaryUpload = TemporaryUpload::findByMediaUuidInCurrentSession($attachment['uuid']);
 
             if ($temporaryUpload instanceof TemporaryUpload) {

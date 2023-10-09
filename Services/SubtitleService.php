@@ -8,6 +8,9 @@ use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use SimpleXMLElement;
+
+use function count;
 
 /**
  * SubtitleService.
@@ -32,7 +35,7 @@ class SubtitleService
     public static function getInstance(): self
     {
         if (! self::$instance instanceof \Modules\Media\Services\SubtitleService) {
-            self::$instance = new self();
+            self::$instance = new self;
         }
 
         return self::$instance;
@@ -88,7 +91,7 @@ class SubtitleService
         $txt = '';
         foreach ($xmlObject->annotation->type->sentence as $sentence) {
             foreach ($sentence->item as $item) {
-                $txt .= $item->__toString().' ';
+                $txt .= $item->__toString() . ' ';
             }
         }
 
@@ -104,7 +107,7 @@ class SubtitleService
         if (! isset($info['extension'])) {
             return [];
         }
-        $func = 'getFrom'.Str::studly($info['extension']);
+        $func = 'getFrom' . Str::studly($info['extension']);
 
         return $this->{$func}();
     }
@@ -136,7 +139,7 @@ class SubtitleService
         $content = $this->getContent();
         $xmlObject = simplexml_load_string($content);
         if (false === $xmlObject) {
-            throw new \Exception('content:['.$content.']'.PHP_EOL.'['.__LINE__.']['.__FILE__.']');
+            throw new Exception('content:[' . $content . ']' . PHP_EOL . '[' . __LINE__ . '][' . __FILE__ . ']');
         }
 
         $data = [];
@@ -145,8 +148,8 @@ class SubtitleService
             $item_i = 0;
             foreach ($sentence->item as $item) {
                 $attributes = $item->attributes();
-                if (! $attributes instanceof \SimpleXMLElement) {
-                    throw new \Exception('['.__LINE__.']['.__FILE__.']');
+                if (! $attributes instanceof SimpleXMLElement) {
+                    throw new Exception('[' . __LINE__ . '][' . __FILE__ . ']');
                 }
                 // 00:06:35,360
                 $start = (int) $attributes->start->__toString() / 1000;
@@ -158,13 +161,13 @@ class SubtitleService
                     'item_i' => $item_i,
                     'start' => $start,
                     'end' => $end,
-                    'time' => secondsToHms($start).','.secondsToHms($end),
+                    'time' => secondsToHms($start) . ',' . secondsToHms($end),
                     'text' => $item->__toString(),
                 ];
                 $data[] = $tmp;
-                ++$item_i;
+                $item_i++;
             }
-            ++$sentence_i;
+            $sentence_i++;
         }
 
         return $data;
@@ -173,8 +176,8 @@ class SubtitleService
     /**
      * Undocumented function.
      *
-     * @param string $srtFile
-     * @param string $webVttFile
+     * @param  string  $srtFile
+     * @param  string  $webVttFile
      */
     public function srtToVtt($srtFile, $webVttFile): void
     {
@@ -191,13 +194,13 @@ class SubtitleService
             // ($fileHandle);
         }
 
-        $length = \count($lines);
-        for ($index = 1; $index < $length; ++$index) {
+        $length = count($lines);
+        for ($index = 1; $index < $length; $index++) {
             if (1 === $index || '' === trim($lines[$index - 2])) {
                 $lines[$index] = str_replace(',', '.', $lines[$index]);
             }
         }
         $header = "WEBVTT\n\n";
-        file_put_contents(public_path($webVttFile), $header.implode('', $lines));
+        file_put_contents(public_path($webVttFile), $header . implode('', $lines));
     }
 }

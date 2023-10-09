@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Modules\Media\Exceptions;
 
-class CouldNotAddUpload extends \Exception
+use Exception;
+
+class CouldNotAddUpload extends Exception
 {
     public static function uuidAlreadyExists(): static
     {

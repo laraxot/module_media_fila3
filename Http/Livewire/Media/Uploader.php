@@ -116,7 +116,7 @@ class Uploader extends Component
 
     protected function handleUpload(TemporaryUploadedFile $temporaryUploadedFile)
     {
-        $media = (new ConvertLivewireUploadToMediaAction())->execute($temporaryUploadedFile);
+        $media = (new ConvertLivewireUploadToMediaAction)->execute($temporaryUploadedFile);
 
         $this->emit("{$this->name}:fileAdded", [
             'name' => $media->name,

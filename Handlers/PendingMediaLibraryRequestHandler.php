@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Modules\Media\Handlers;
 
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Modules\Media\Dto\MediaLibraryRequestItem;
 use Modules\Media\Dto\PendingMediaItem;
 use Spatie\MediaLibrary\MediaCollections\FileAdderFactory;
+
+use function is_string;
 
 class PendingMediaLibraryRequestHandler
 {
@@ -25,11 +28,11 @@ class PendingMediaLibraryRequestHandler
     }
 
     /**
-     * @param string|callable $mediaName
+     * @param  string|callable  $mediaName
      */
     public function usingName($mediaName): self
     {
-        if (\is_string($mediaName)) {
+        if (is_string($mediaName)) {
             return $this->usingName(fn (): string => $mediaName);
         }
 
@@ -47,11 +50,11 @@ class PendingMediaLibraryRequestHandler
     }
 
     /**
-     * @param string|\Closure $fileName
+     * @param  string|Closure  $fileName
      */
     public function usingFileName($fileName): self
     {
-        if (\is_string($fileName)) {
+        if (is_string($fileName)) {
             return $this->usingFileName(fn (): string => $fileName);
         }
 
