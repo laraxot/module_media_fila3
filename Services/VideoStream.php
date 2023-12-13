@@ -139,7 +139,7 @@ class VideoStream
                 header(sprintf('Content-Range: bytes %d-%d/%d', $this->start, $this->end, $this->size));
                 exit;
             }
-            if ('-' === $range) {
+            if ($range === '-') {
                 $c_start = $this->size - (int) substr($range, 1);
             } else {
                 $range = explode('-', $range);

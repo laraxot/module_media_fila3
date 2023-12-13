@@ -41,7 +41,7 @@ class Upload extends Component
 
     public function determineListViewName(): string
     {
-        if (null !== $this->listView) {
+        if ($this->listView !== null) {
             return $this->listView;
         }
 
@@ -50,7 +50,7 @@ class Upload extends Component
 
     public function determineItemViewName(): string
     {
-        if (null !== $this->itemView) {
+        if ($this->itemView !== null) {
             return $this->itemView;
         }
 
@@ -59,7 +59,7 @@ class Upload extends Component
 
     public function determineFieldsViewName(): string
     {
-        if (null !== $this->fieldsView) {
+        if ($this->fieldsView !== null) {
             return $this->fieldsView;
         }
 
