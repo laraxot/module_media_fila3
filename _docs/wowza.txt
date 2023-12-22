@@ -1,0 +1,9 @@
+https://www.wowza.com/community/t/wowza-rest-api-and-laravel-5-4/49380
+
+
+https://github.com/topix-hackademy/laravel-wowza-restapi
+
+
+SAFARI BUG !
+https://blog.logrocket.com/streaming-video-in-safari/  !!!!
+

@@ -1,0 +1,41 @@
+import JQuery from 'jquery'
+window.$ = JQuery
+
+or simply
+
+import $ from 'jquery'
+
+mounted () {
+   // Your JQuery code here
+}
+-----------------------------------------------
+
+Vue.prototype.$ = $;
+
+....
+
+// in Vue Component
+created() {
+  const $body = this.$('body');
+  console.log($body);
+}
+
+--------------------------------------------
+
+https://webpack.js.org/plugins/provide-plugin/
+
+new webpack.ProvidePlugin({
+  $: 'jquery',
+  jQuery: 'jquery',
+});
+
+
+--------------------------------------------
+
+https://vuejsdevelopers.com/2017/05/20/vue-js-safely-jquery-plugin/
+
+
+----------------------------------------------
+
+
+

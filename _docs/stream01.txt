@@ -1,0 +1,97 @@
+//----------------------
+    $streamFileData = $response->getBody()->getContents();
+        $fileName = "test.pdf";
+        $headers = [
+            'Content-Type'        => 'application/octet-stream',
+            'Content-Disposition' => 'attachment; filename=' . $fileName,
+        ];
+        $response = response( $streamFileData, 200, $headers );
+        return $response;
+
+//--------------------
+
+https://gist.github.com/vluzrmos/d849d67cfd9f44e5f0b6f52e2a374c2e
+
+//-----------------
+
+https://pineco.de/simple-event-streaming-in-laravel/
+
+https://github.com/PHPJunior/laravel-video-chat
+
+
+//-------------------
+<?php
+
+public function getSong(Song $song) {
+	$path = storage_path().$song->path.".mp3");
+	$user = \Auth::user();
+	if($user->activated_at) {
+		$response = new BinaryFileResponse($path);
+		BinaryFileResponse::trustXSendfileTypeHeader();
+		return $response;
+	}
+	\App::abort(400);
+}
+
+//---------------------------
+set_time_limit(0);
+
+/** @var \League\Flysystem\Filesystem $fs */
+$fs = Storage::disk('files')->getDriver();
+
+$metaData = $fs->getMetadata($file->fullroute);
+$stream = $fs->readStream($file->fullroute);
+
+if (ob_get_level()) ob_end_clean();
+
+return response()->stream(
+function () use ($stream) {
+fpassthru($stream);
+},
+200,
+[
+'Cache-Control' => 'private',
+'Content-Type' => $file->type,
+'Content-Length' => $file->size,
+'Content-Disposition' => 'attachment; filename="' . $file->filename . '"',
+'Pragma' => 'public',
+]);
+
+//--------------------------------------------------
+
+public function getWatch($file) {
+	$video = Video::where('file', '=', $file)->first();
+
+	if(!$video) {
+		return App::abort(404);
+	}
+
+	$path = Config::get('memento.storage.videos') . DIRECTORY_SEPARATOR . $video->event_id . DIRECTORY_SEPARATOR . $video->file . '.ts';
+
+	if(!File::exists($path)) {
+		return App::abort(500);
+	}
+
+	$headers = [
+		'Content-Type'        => 'video/mp2t',
+		'Content-Length'      => File::size($path),
+		'Content-Disposition' => 'attachment; filename="' . $video->file . '.ts"'
+	];
+
+	return Response::stream(function() use ($path) {
+		try {
+			$stream = fopen($path, 'r');
+			fpassthru($stream);
+		} catch(Exception $e) {
+			Log::error($e);
+		}
+	}, 200, $headers);
+}
+
+//------------------------------------------------------
+
+
+
+
+
+

@@ -1,0 +1,2 @@
+-- TUTORIAL --
+https://5balloons.info/image-upload-resize-retrieve-laravel-medialibrary-spatie-package

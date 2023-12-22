@@ -1,0 +1,527 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * ---.
+ */
+
+namespace Modules\Media\Http\Livewire;
+
+header('Accept-Ranges: bytes');
+
+use Exception;
+use FFMpeg\FFMpeg;
+use Illuminate\Support\Facades\DB;
+use Livewire\Component;
+use Modules\Media\Models\Video;
+use Modules\Media\Models\VideoTag;
+use Orchestra\Parser\Xml\Facade as XmlParser;
+use SimpleXMLElement;
+
+class VideoEditorSub extends Component {
+    public $src = '';
+    public $key = '';
+    public $srt = '';
+    public $vtt = '';
+    public $primary_image = '';
+    public $subtitles = [];
+    public $episodes = [];
+    public $snaps = [];
+    public $categories = [];
+    public $tags = [];
+    public $selectedSubtitle = null;
+    public $selectedSubtitles = [];
+    public $editSubtitle = null;
+    public $editSubtitleText = null;
+    /**
+* @var array<string, string>
+*/
+protected $listeners = [
+        'save-subtitle-range' => 'saveSubtitleRange',
+        'save-subtitle-model' => 'saveSubtitleModel',
+        'take-episode' => 'takeEpisode',
+        'set-snap' => 'setSnap',
+        'set-selected-subtitles' => 'setSelectedSubtitles',
+        'save-video-db' => 'saveVideoDB', ];
+
+    public function __construct($id = null) {
+        parent::__construct($id);
+    }
+
+    public function mount($src = '', $key = 'video-1', $srt = '') {
+        $this->src = $src;
+        $this->key = $key;
+        $this->srt = $srt;
+        $path_parts = pathinfo(basename($this->src));
+        $this->snaps = array_diff(scandir(public_path('/snaps/'.$path_parts['filename'])), ['.', '..']);
+        foreach ($this->snaps as $sk => $snap) {
+            $this->snaps[$sk] = '/snaps/'.$path_parts['filename'].'/'.$snap;
+        }
+        $this->snaps = array_values($this->snaps);
+        if (config('video.use_category')) {
+            $this->categories = DB::table(config('video.category_table'))->get()->toArray();
+            $this->categories = array_map(function ($value) {
+                return (array) $value;
+            }, $this->categories);
+        }
+        $tags = config('video.tags');
+        if (! empty($tags)) {
+            foreach ($tags as $tk => $tag) {
+                $data = DB::table($tag['tag_table'])->get()->toArray();
+                $data = array_map(function ($value) {
+                    return (array) $value;
+                }, $data);
+                $tags[$tk]['data'] = $data;
+            }
+            $this->tags = $tags;
+        }
+
+        if ($srt) {
+            $srt_info = pathinfo(public_path($srt));
+            switch ($srt_info['extension']) {
+                case 'srt':
+                    $vtt_file = str_replace('.srt', '.vtt', $srt);
+                    if (! file_exists(public_path($vtt_file))) {
+                        $this->srtToVtt($srt, $vtt_file);
+                    }
+                    $this->vtt = url($vtt_file);
+                    $this->getSubtitles($srt);
+                    break;
+                case 'xml':
+                    $this->getSubtitlesXml($srt);
+                    break;
+                default:
+                    throw new Exception();
+            }
+        }
+    }
+
+    public function saveVideoDB($data) {
+        parse_str($data, $result);
+
+        $path_parts = pathinfo(basename($this->src));
+        $videos = Video::count();
+
+        @mkdir(public_path('/videos/'.($videos + 1)), 0777);
+        $newfilepath = public_path('/videos/'.($videos + 1)).'/'.$result['video_name'].'.'.$path_parts['extension'];
+
+        copy(public_path($this->src), $newfilepath);
+        $newsrtpath = '';
+        if ($this->srt) {
+            $newsrtpath = public_path('/videos/'.($videos + 1)).'/'.$result['video_name'].'.srt';
+            copy(public_path($this->srt), $newsrtpath);
+        }
+        $video = new Video();
+
+        $video->name = $result['video_name'];
+        $video->description = $result['video_description'];
+        $video->category_id = @$result['video_category'];
+        $video->image = $this->primary_image;
+        $video->src_url = $newfilepath;
+        $video->srt_url = $newsrtpath;
+
+        $video->save();
+
+        if (isset($result['tags']) && ! empty($result['tags'])) {
+            foreach ($result['tags'] as $tk => $tag) {
+                VideoTag::insert([
+                    'video_id' => $video->id,
+                    'entity_id' => $tag,
+                    'entity' => $tk,
+                ]);
+            }
+        }
+        $this->dispatchBrowserEvent('done', '');
+    }
+
+    public function deleteSnap($key) {
+        @unlink(public_path($this->snaps[$key]));
+        unset($this->snaps[$key]);
+        $this->snaps = array_values($this->snaps);
+    }
+
+    public function downloadSnap($key) {
+        $this->dispatchBrowserEvent('download-file', [url($this->snaps[$key])]);
+    }
+
+    public function setSnap($data) {
+        list($type, $data) = explode(';', $data);
+        list(, $data) = explode(',', $data);
+        $data = base64_decode($data, true);
+        $path_parts = pathinfo(basename($this->src));
+        @mkdir(public_path('/snaps/'), 0777);
+        @mkdir(public_path('/snaps/'.$path_parts['filename']), 0777);
+        $filename = '/snaps/'.$path_parts['filename'].'/'.time().'.png';
+        file_put_contents(public_path($filename), $data);
+        $this->snaps[] = $filename;
+    }
+
+    public function deleteEpisode($key) {
+        unset($this->episodes[$key]);
+        $this->episodes = array_values($this->episodes);
+    }
+
+    public function array_chunk_by(array $array, callable $callback, bool $preserve_keys = false): array {
+        $reducer = function (array $carry, $key) use ($array, $callback, $preserve_keys) {
+            $current = $array[$key];
+            $length = \count($carry);
+
+            if ($length > 0) {
+                $chunk = &$carry[$length - 1];
+                end($chunk);
+                $previous = $chunk[key($chunk)];
+
+                if ($callback($previous, $current)) {
+                    // Split, create a new group.
+                    if ($preserve_keys) {
+                        $carry[] = [$key => $current];
+                    } else {
+                        $carry[] = [$current];
+                    }
+                } else {
+                    // Put into the $currentrent group.
+                    if ($preserve_keys) {
+                        $chunk[$key] = $current;
+                    } else {
+                        $chunk[] = $current;
+                    }
+                }
+            } else {
+                // The first group.
+                if ($preserve_keys) {
+                    $carry[] = [$key => $current];
+                } else {
+                    $carry[] = [$current];
+                }
+            }
+
+            return $carry;
+        };
+
+        return array_reduce(array_keys($array), $reducer, []);
+    }
+
+    public function getSubtitlesXml($file) {
+        $this->subtitles = [];
+        $content = file_get_contents(public_path($file));
+        $xmlObject = simplexml_load_string($content);
+        // $xmlObject1 = new SimpleXMLElement($content);
+        // $xml = XmlParser::load(public_path($file));
+
+        // $json = json_encode($xmlObject);
+        // $phpArray = json_decode($json, true);
+
+        // dddx(
+        //    [
+        // 'xml_original' => $xml->getOriginalContent()->annotation->type->sentence->item[1],
+        // 'xml' => $xml->getContent()->annotation->type->sentence,
+        // 'xmlObject'=>$xmlObject,
+        //        'test1'=>$xmlObject->annotation->type->sentence->item[1]->attributes()->end->__toString(),
+        //        'test2'=>$xmlObject->annotation->type->sentence->count(),
+        //        'test3'=>count($xmlObject->annotation->type->sentence),
+        // 'xmlObject1'=>$xmlObject1->annotation->type->sentence,
+        // 'phpArray'=>$phpArray,
+        // 'test'=>$phpArray['annotation']['type']['sentence'],
+        //    ]
+        // );
+        $data = [];
+        $i = 0;
+        foreach ($xmlObject->annotation->type->sentence as $sentence) {
+            foreach ($sentence->item as $item) {
+                // 00:06:35,360
+                $start = (int) $item->attributes()->start->__toString() / 1000;
+                $end = (int) $item->attributes()->end->__toString() / 1000;
+
+                // dddx([$start,$this->secondsToHms($start),$end,$this->secondsToHms($end)]);
+
+                $tmp = [
+                    'id' => $i++,
+                    'time' => [$this->secondsToHms($start), $this->secondsToHms($end)],
+                    'text' => [$item->__toString()],
+                ];
+                $data[] = $tmp;
+            }
+        }
+        $this->subtitles = $data;
+    }
+
+    // children ,attributes
+
+    /**
+     *  +"@attributes": array:3 [▼
+      +"0": "this"
+     * @param mixed $file
+     */
+    public function getSubtitles($file) {
+        $this->subtitles = [];
+        $content = file_get_contents(public_path($file));
+        $content = explode("\n", $content);
+        $content = array_values($content);
+        foreach ($content as $ck => $cv) {
+            $content[$ck] = $this->trimEOL($cv);
+        }
+
+        $content = array_values(array_diff($content, ['WEBVTT']));
+        $content = $this->array_chunk_by($content, function ($prev, $curr) {
+            return '' === $curr;
+        });
+        foreach ($content as $con) {
+            $subtitle = [];
+            $con = array_values(array_filter($con));
+            if (! empty($con)) {
+                $subtitle['id'] = $con[0];
+                $subtitle['time'] = explode('-->', str_replace(',', '.', $con[1]));
+                unset($con[0], $con[1]);
+
+                $subtitle['text'] = $con;
+                $this->subtitles[] = $subtitle;
+            }
+        }
+    }
+
+    public function saveSubtitle($key) {
+        $this->subtitles[$key]['text'] = [$this->editSubtitleText];
+        $this->editSubtitle = null;
+        $this->saveSubtitleFile();
+    }
+
+    public function editSubtitle($key) {
+        $this->editSubtitle = $this->subtitles[$key];
+        $this->editSubtitleText = implode('  ', $this->editSubtitle['text']);
+    }
+
+    public function removeSelectedSubtitle($key) {
+        unset($this->subtitles[$key]);
+        $this->saveSubtitleFile();
+        $this->dispatchBrowserEvent('subtitle-saved');
+    }
+
+    public function saveSubtitleFile($filepath = '', $subtitles = []) {
+        $this->subtitles = array_values($this->subtitles);
+        if (empty($subtitles)) {
+            $subtitles = $this->subtitles;
+        }
+        $lines = [];
+        foreach ($subtitles as $sk => $subtitle) {
+            $lines[] = $sk + 1;
+            $subtitle['time'][0] = $this->trimEOL($subtitle['time'][0]);
+            $subtitle['time'][1] = $this->trimEOL($subtitle['time'][1]);
+            $lines[] = implode(' --> ', $subtitle['time']);
+            foreach ($subtitle['text'] as $text) {
+                $lines[] = $text;
+            }
+            $lines[] = '';
+        }
+        foreach ($lines as $key => $value) {
+            $lines[$key] = $this->trimEOL($value);
+        }
+
+        array_splice($lines, 0, 0, '');
+        array_splice($lines, 0, 0, 'WEBVTT');
+        try {
+            if ('' === $filepath) {
+                file_put_contents(public_path(str_replace('.srt', '.vtt', $this->srt)), implode(PHP_EOL, array_values($lines)));
+                unset($lines[0], $lines[1]);
+
+                file_put_contents(public_path($this->srt), implode(PHP_EOL, array_values($lines)));
+            } else {
+                unset($lines[0], $lines[1]);
+
+                file_put_contents(public_path($filepath), implode(PHP_EOL, array_values($lines)));
+            }
+        } catch (\Exception $e) {
+            dd($e->getMessage());
+        }
+    }
+
+    public function downloadEpisode($ek) {
+        $episode = $this->episodes[$ek];
+
+        // episode download
+        $ffmpeg = FFMpeg::create(['ffmpeg.binaries' => config('video.ffmpeg_binaries'), 'ffprobe.binaries' => config('video.ffprobe_binaries')]);
+        $video = $ffmpeg->open(public_path($this->src));
+        $path_parts = pathinfo(basename($this->src));
+        @mkdir(public_path('/videos/'.$path_parts['filename']), 0777);
+        array_map('unlink', array_filter((array) glob(public_path('/videos/'.$path_parts['filename'].'/*'))));
+        $startTime = \FFMpeg\Coordinate\TimeCode::fromSeconds($this->hmsToSeconds($episode['time'][0]));
+        $endTime = \FFMpeg\Coordinate\TimeCode::fromSeconds($this->hmsToSeconds($episode['time'][1]) - $this->hmsToSeconds($episode['time'][0]));
+        $clip = $video->clip($startTime, $endTime);
+        $filepath = '/videos/'.$path_parts['filename'].'/'.$path_parts['filename'].'-'.time().'.'.$path_parts['extension'];
+        $clip->save(new \FFMpeg\Format\Video\X264(), public_path($filepath));
+
+        // srt for episode
+        $selectedSub = [];
+        $sp1 = $this->hmsToSeconds($episode['time'][0]);
+        $ep1 = $this->hmsToSeconds($episode['time'][1]);
+        foreach ($this->subtitles as $sk => $subtitle) {
+            $sp2 = $this->hmsToSeconds($this->trimEOL($subtitle['time'][0]));
+            $ep2 = $this->hmsToSeconds($this->trimEOL($subtitle['time'][1]));
+            if ((($sp1 > $sp2 && $sp1 < $ep2) || ($ep1 > $sp2 && $ep1 < $ep2)) || ($sp1 <= $sp2 && $ep1 >= $ep2)) {
+                $newStart = $sp2 - $sp1;
+                $newEnd = $ep2 - $sp1;
+
+                if ($newStart > 0 || $newEnd > 0) {
+                    $subtitle['time'][0] = ($newStart < 0 ? '00:00:00.000' : $this->secondsToHms($newStart));
+                    $subtitle['time'][1] = $this->secondsToHms($newEnd);
+
+                    $selectedSub[] = $subtitle;
+                }
+            }
+        }
+
+        $downloadArray = [url($filepath)];
+        if (! empty($selectedSub)) {
+            $filename2 = '/videos/'.$path_parts['filename'].'/'.time().'.srt';
+            $this->saveSubtitleFile($filename2, $selectedSub);
+            $downloadArray[] = $filename2;
+        }
+
+        $this->dispatchBrowserEvent('download-file', $downloadArray);
+    }
+
+    public function trimEOL($data) {
+        return trim(str_replace('\r', '', str_replace('\n', '', str_replace('\r\n', '', $data))));
+    }
+
+    public function downloadVideo() {
+        $path_parts = pathinfo(basename($this->src));
+        $download_url = url($this->src);
+        $download_url2 = url($this->srt);
+        $this->dispatchBrowserEvent('download-file', [$download_url, $download_url2]);
+    }
+
+    public function mergeEpisodes() {
+        $ffmpeg = FFMpeg::create(['ffmpeg.binaries' => config('video.ffmpeg_binaries'), 'ffprobe.binaries' => config('video.ffprobe_binaries')]);
+        $video = $ffmpeg->open(public_path($this->src));
+        $path_parts = pathinfo(basename($this->src));
+        @mkdir(public_path('/videos/'.$path_parts['filename']), 0777);
+        array_map('unlink', array_filter((array) glob(public_path('/videos/'.$path_parts['filename'].'/*'))));
+        foreach ($this->episodes as $episode) {
+            $startTime = \FFMpeg\Coordinate\TimeCode::fromSeconds($this->hmsToSeconds($episode['time'][0]));
+            $endTime = \FFMpeg\Coordinate\TimeCode::fromSeconds($this->hmsToSeconds($episode['time'][1]) - $this->hmsToSeconds($episode['time'][0]));
+            $clip = $video->clip($startTime, $endTime);
+            $clip->save(new \FFMpeg\Format\Video\X264(), public_path('/videos/'.$path_parts['filename'].'/'.$path_parts['filename'].'-'.time().'.'.$path_parts['extension']));
+        }
+        $files = array_diff(scandir(public_path('/videos/'.$path_parts['filename'])), ['.', '..']);
+        $files = array_values($files);
+        foreach ($files as $fk => $file) {
+            $files[$fk] = public_path('/videos/'.$path_parts['filename'].'/'.$file);
+        }
+
+        if (\count($files) > 1) {
+            $video = $ffmpeg->open($files[0]);
+            unset($files[0]);
+            $file_name = $path_parts['filename'].'/'.time().'.mp4';
+            $file_url = public_path('/videos/'.$file_name);
+            $video
+                ->concat($files)
+                ->saveFromSameCodecs($file_url, true);
+            $download_url = url('/videos/'.$file_name);
+        } else {
+            $file_url = $files[0];
+            $download_url = url('/videos/'.$path_parts['filename'].'/'.basename($file_url));
+        }
+
+        $this->dispatchBrowserEvent('download-file', [$download_url]);
+    }
+
+    public function hmsToSeconds($data) {
+        $p = explode(':', $data);
+        $s = 0;
+        $m = 1;
+        while (\count($p) > 0) {
+            $s += $m * array_pop($p);
+            $m *= 60;
+        }
+
+        return $s;
+    }
+
+    public function secondsToHms($seconds) {
+        $hours = floor($seconds / 3600);
+        $seconds -= $hours * 3600;
+        $minutes = floor($seconds / 60);
+        $seconds -= $minutes * 60;
+        $str = '';
+        if ($hours > 0) {
+            $str .= ($hours < 9 ? '0'.$hours : $hours).':';
+        }
+        $str .= ($minutes < 9 ? '0'.$minutes : $minutes).':'.round($seconds, 3);
+
+        return $str;
+    }
+
+    public function takeEpisode($data) {
+        $this->episodes[] = $data;
+    }
+
+    public function saveSubtitleModel($data) {
+        parse_str($data, $data);
+//        dd($data);
+        foreach ($this->subtitles as $sk => $subtitle) {
+            foreach ($data['subtitles'] as $dk => $dvalue) {
+                if ($sk === $dk) {
+                    $this->subtitles[$sk]['text'] = explode('\r\n', $dvalue);
+                }
+            }
+        }
+        $this->saveSubtitleFile();
+        $this->dispatchBrowserEvent('subtitle-saved');
+    }
+
+    public function saveSubtitleRange($data) {
+        dd($data);
+        $lastSubtitle = $this->subtitles[\count($this->subtitles) - 1];
+
+        $subtitle = [];
+        $subtitle['id'] = $lastSubtitle['id'] + 1;
+        $subtitle['time'] = $data['time'];
+        $subtitle['text'] = [$data['text']];
+        array_unshift($this->subtitles, $subtitle);
+//        $this->subtitles[]=$subtitle;
+//        foreach ($this->subtitles as $sk=> $subtitle){
+        // //            if($subtitle['id']==$this->selectedSubtitle){
+//                $this->subtitles[$sk]['time']=$data;
+        // //            }
+//        }
+
+        $this->saveSubtitleFile();
+        $this->dispatchBrowserEvent('subtitle-saved');
+    }
+
+    public function setSelectedSubtitles($data) {
+        $this->selectedSubtitles = $data;
+        $this->dispatchBrowserEvent('edit-subtitle-modal', '');
+    }
+
+    public function setSelectedSubtitle($id) {
+        $this->selectedSubtitle = $id;
+    }
+
+    public function render() {
+        return view('media::livewire.video-editor-sub');
+    }
+
+    public function srtToVtt($srtFile, $webVttFile) {
+        $fileHandle = fopen(public_path($srtFile), 'r');
+        $lines = [];
+
+        if ($fileHandle) {
+            while (false !== ($line = fgets($fileHandle, 8192))) {
+                $lines[] = $line;
+            }
+            if (! feof($fileHandle)) {
+                exit("Error: unexpected fgets() fail\n");
+            } else ($fileHandle);
+        }
+
+        $length = \count($lines);
+        for ($index = 1; $index < $length; ++$index) {
+            if (1 === $index || '' === trim($lines[$index - 2])) {
+                $lines[$index] = str_replace(',', '.', $lines[$index]);
+            }
+        }
+        $header = "WEBVTT\n\n";
+        file_put_contents(public_path($webVttFile), $header.implode('', $lines));
+    }
+}

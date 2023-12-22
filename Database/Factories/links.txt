@@ -1,0 +1,17 @@
+'icon' => $faker->file($sourceDir='/home/gujarat/fakerFile/images', $targetDir='./public/iconLibrary', false),
+'title' => $faker->name,
+'date' => $faker->numberBetween($min = 1900, $max = 2016),
+'size' => $faker->randomFloat($nbMaxDecimals = 10.0, $min = 2.0, $max = 10.0),
+'file_type' => 'video/mp4',
+'download_url' => $faker->file($sourceDir='/home/gujarat/fakerFile/video', $targetDir='./public/videoLibrary', false),
+'category_id' => $randomCategory->id,
+
+-------------------------------------------------------------------------------------------
+
+$path = $faker->file($sourceDir='/home/gujarat/fakerFile/video', $targetDir='./public/videoLibrary', false);
+$uploadedFile = new Illuminate\Http\UploadedFile($path, 'randomName');
+$uploadedFile->getClientSize();
+
+---------------------------------------------------------------------------------------------
+
+

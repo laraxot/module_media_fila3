@@ -1,0 +1,2 @@
+https://code.tutsplus.com/tutorials/deferring-tasks-in-laravel-using-queues--cms-29957
+

@@ -1,0 +1,13 @@
+https://stackoverflow.com/questions/52661435/video-js-unable-to-pause-video-when-seekbar-is-clicked
+
+https://player.support.brightcove.com/code-samples/brightcove-player-sample-get-seeked-time.html
+
+
+https://www.nuevodevel.com/nuevo/showcase/sprite
+
+
+https://github.com/videojs/video.js/issues/5396
+
+
+
+

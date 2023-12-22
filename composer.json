@@ -1,0 +1,99 @@
+{
+    "name": "laraxot/module_media_fila3",
+    "description": "media module dedicated to image and video management",
+    "keywords": [
+        "laraxot",
+        "laravel",
+        "filament",
+        "module_media",
+        "Laravel",
+        "Media module",
+        "Media",
+        "Images",
+        "Videos"
+    ],
+    "homepage": "https://github.com/laraxot/module_media_fila3",
+    "license": "MIT",
+    "authors": [{
+        "name": "Marco Xot",
+        "email": "marco.sottana@gmail.com"
+    }],
+    "require": {
+        "filament/spatie-laravel-media-library-plugin": "*",
+        "laraxot/module_xot_fila3": "dev-master",
+        "pbmedia/laravel-ffmpeg": "*",
+        "thecodingmachine/safe": "*"
+    },
+    "require-dev": {
+        "driftingly/rector-laravel": "*",
+        "enlightn/enlightn": "*",
+        "larastan/larastan": "*",
+        "laravel/pint": "*",
+        "nunomaduro/collision": "^7.9",
+        "larastan/larastan": "*",
+        "nunomaduro/phpinsights": "*",
+        "orchestra/testbench": "^8.0",
+        "pestphp/pest": "^2.0",
+        "pestphp/pest-plugin-arch": "^2.0",
+        "pestphp/pest-plugin-laravel": "^2.0",
+        "phpstan/phpstan-deprecation-rules": "^1.0",
+        "phpstan/phpstan-phpunit": "^1.0",
+        "psalm/plugin-laravel": "*",
+        "rector/phpstan-rules": "*",
+        "rector/rector": "*",
+        "spatie/laravel-ray": "^1.26",
+        "symplify/phpstan-rules": "*",
+        "thecodingmachine/phpstan-safe-rule": "*",
+        "vimeo/psalm": "*"
+    },
+    "repositories": [ {
+        "type": "path",
+        "url": "../Xot"
+    },
+    {
+        "type": "path",
+        "url": "../Tenant"
+    },
+    {
+        "type": "path",
+        "url": "../UI"
+    }],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Modules\\Media\\Providers\\MediaServiceProvider"
+            ],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Media\\": ""
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php vendor/bin/testbench package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "Illuminate\\Foundation\\ComposerScripts::postUpdate",
+            "@php artisan ide-helper:generate",
+            "@php artisan ide-helper:meta"
+        ],
+        "analyse": "vendor/bin/phpstan analyse",
+        "test": "./vendor/bin/pest --no-coverage",
+        "test-coverage": "vendor/bin/pest --coverage-html coverage",
+        "format": "vendor/bin/php-cs-fixer fix --allow-risky=yes"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

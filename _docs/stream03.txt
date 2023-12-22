@@ -1,0 +1,20 @@
+//------------------------
+https://dev.to/mupati/live-stream-with-webrtc-in-your-laravel-application-2kl3
+
+//------------------------
+https://cloudinary.com/documentation/adaptive_bitrate_streaming
+
+//------------------------
+https://mux.com/
+
+//------------------------
+https://quantizd.com/transcoding-videos-using-ffmpeg-and-laravel-queues/   !!!
+
+//------------------------
+https://bestofphp.com/repo/francoism90-mediadb-php-laravel-utilities
+
+//------------------------
+
+
+
+//------------------------

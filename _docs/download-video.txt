@@ -1,0 +1,7 @@
+https://danclowry.com/blog/youtube-dl-windows-install/
+
+http://ytdl-org.github.io/youtube-dl/download.html
+
+https://mayahi.net/laravel/queues-in-laravel-building-a-video-downloader-website/
+
+

@@ -1,0 +1,113 @@
+------------------
+--- chromecast ---
+------------------
+
+https://www.npmjs.com/package/@bnnvara/videojs-chromecast
+https://www.npmjs.com/package/@guaclive/videojs-chromecast
+https://www.npmjs.com/package/@mredgarp/videojs-chromecast 
+https://www.npmjs.com/package/videojs-google-chromecast
+https://www.npmjs.com/package/videojs-chromecast
+
+
+------------------------
+--- quality-selector ---
+------------------------
+
+https://www.npmjs.com/package/@hartmflo86/videojs-hls-quality-selector
+https://www.npmjs.com/package/@litomore/videojs-hls-quality-selector
+https://www.npmjs.com/package/videojs-hls-quality-selector
+
+
+-----------
+--- SEO ---
+-----------
+
+https://www.npmjs.com/package/videojs-schema
+
+
+-----------------
+--- watermark ---
+-----------------
+
+https://www.npmjs.com/package/videojs-watermark
+
+
+--------------
+--- offset ---
+--------------
+
+https://www.npmjs.com/package/@vaam/videojs-offset
+https://www.npmjs.com/package/videojs-offset
+
+---------------
+--- buttons ---
+---------------
+
+https://www.npmjs.com/package/videojs-overlay-buttons
+https://github.com/brightcove/videojs-overlay/blob/master/index.html   !!!!
+https://www.npmjs.com/package/videojs-seek-buttons
+
+
+
+-------------------
+--- annotations ---
+-------------------
+
+https://www.npmjs.com/package/videojs-annotations
+
+
+---------------
+--- markers ---
+---------------
+
+https://www.npmjs.com/package/@filmgardi/videojs-markers                35
+https://www.npmjs.com/package/videojs-marker-plugin                     31     !!!
+https://www.npmjs.com/package/videojs-markers-enhanced                  2      !!
+https://www.npmjs.com/package/@my-videojs/videojs-progress-marker       2 
+https://www.npmjs.com/package/videojs-markers                           3116 !!!! 
+https://www.npmjs.com/package/@dotstudiopro/videojs-markers-plugin      17 
+https://www.npmjs.com/package/videojs-progress-marker                   1
+https://www.npmjs.com/package/videojs-markers-plugin                    1780 !!!
+https://www.npmjs.com/package/@imagespark/videojs-markers               32
+
+
+
+
+
+
+
+-----------------
+--- streaming ---
+-----------------
+
+https://www.npmjs.com/package/@videojs/http-streaming
+https://www.npmjs.com/package/@antmedia/videojs-webrtc-plugin
+
+
+------------
+--- CSS ----
+------------
+
+https://www.npmjs.com/package/videojs-css   !!!!!
+
+
+--------------------
+--- social media ---
+--------------------
+
+https://www.npmjs.com/package/videojs-social-media
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

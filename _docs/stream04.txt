@@ -1,0 +1,15 @@
+
+https://dev.to/mupati/live-stream-with-webrtc-in-your-laravel-application-2kl3
+
+https://gist.github.com/vluzrmos/d5682ad426525196d069  videostream
+
+
+https://github.com/McBrideDev/Video-Streaming-Website/tree/master/VideoStreamingWebsite
+
+https://github.com/YassinAO/video-streaming-app-template
+
+
+
+
+https://www.npmjs.com/package/simple-peer   !!!
+

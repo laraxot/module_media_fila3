@@ -1,0 +1,6 @@
+composer require php-ffmpeg/php-ffmpeg
+
+https://phpnews.io/feeditem/how-to-use-ffmpeg-in-your-laravel-projects
+
+
+
